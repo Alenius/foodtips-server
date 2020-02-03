@@ -26,6 +26,7 @@ const recipeDef = gql`
   type Query {
     getAllRecipes: [Recipe]
     getAllTags: [Tag]
+    getAllCuisines: [Cuisine];
   }
 
   input TagInput {
@@ -59,6 +60,10 @@ const recipeResolvers = {
     getAllTags: async () => {
       const tags = await Tag.find();
       return tags;
+    },
+    getAllCuisines: async () => {
+      const cuisines = await Cuisine.find();
+      return cuisines;
     }
   },
   Mutation: {
