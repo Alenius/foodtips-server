@@ -26,7 +26,7 @@ const recipeDef = gql`
   type Query {
     getAllRecipes: [Recipe]
     getAllTags: [Tag]
-    getAllCuisines: [Cuisine];
+    getAllCuisines: [Cuisine]
   }
 
   input TagInput {
@@ -54,7 +54,6 @@ const recipeResolvers = {
       const recipes = await Recipe.find()
         .populate("cuisine")
         .populate("tags");
-
       return recipes;
     },
     getAllTags: async () => {
