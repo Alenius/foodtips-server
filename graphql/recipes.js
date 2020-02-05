@@ -6,19 +6,11 @@ const { Cuisine } = require("../models/CuisineModel");
 const mongoose = require("mongoose");
 
 const recipeDef = gql`
-  type Cuisine {
-    cuisine: String
-  }
-
-  type Tag {
-    tag: String
-  }
-
   type Recipe {
     title: String
     link: String
-    cuisine: Cuisine
-    tags: [Tag]
+    cuisine: String
+    tags: [String]
     vegetarian: Boolean
     vegan: Boolean
   }
@@ -26,12 +18,8 @@ const recipeDef = gql`
   type Query {
     getRecipe(cuisines: [String]): [Recipe]
     getAllRecipes: [Recipe]
-    getAllTags: [Tag]
-    getAllCuisines: [Cuisine]
-  }
-
-  input TagInput {
-    tag: String
+    getAllTags: [String]
+    getAllCuisines: [String]
   }
 
   input RecipeInput {
@@ -45,9 +33,24 @@ const recipeDef = gql`
 
   type Mutation {
     addRecipe(input: RecipeInput): Recipe
-    addTag(input: TagInput): Tag
+    addTag(input: String): String
   }
 `;
+
+const mapCuisineAndTagsToString = recipeArr => {
+  return recipeArr.flat().map(it => {
+    const tagArr = it.tags.map(it => it.tag);
+    const cuisine = it.cuisine.cuisine;
+    return {
+      title: it.title,
+      link: it.link,
+      vegetarian: it.vegetarian,
+      vegan: it.vegan,
+      cuisine,
+      tags: tagArr
+    };
+  });
+};
 
 const recipeResolvers = {
   Query: {
@@ -59,21 +62,24 @@ const recipeResolvers = {
       );
       const cuisineIDArray = await Promise.all(cuisinePromiseArray);
 
-      const recipePromiseArr = cuisineIDArray.map(async cuisineID => {
-        const recipes = await Recipe.find({ cuisine: cuisineID })
+      const recipePromiseArr = cuisineIDArray.flat().map(async cuisineID => {
+        const recipes = await Recipe.find({ cuisine: cuisineID._id })
           .populate("cuisine")
           .populate("tags");
         return recipes;
       });
 
       const recipeArr = await Promise.all(recipePromiseArr);
-      return recipeArr.flat();
+      const mappedArr = mapCuisineAndTagsToString(recipeArr);
+      return mappedArr;
     },
     getAllRecipes: async () => {
       const recipes = await Recipe.find()
         .populate("cuisine")
         .populate("tags");
-      return recipes;
+
+      const mappedArr = mapCuisineAndTagsToString(recipes);
+      return mappedArr;
     },
     getAllTags: async () => {
       const tags = await Tag.find();
@@ -81,7 +87,8 @@ const recipeResolvers = {
     },
     getAllCuisines: async () => {
       const cuisines = await Cuisine.find();
-      return cuisines;
+      const cuisineStrings = cuisines.map(it => it.cuisine);
+      return cuisineStrings;
     }
   },
   Mutation: {
