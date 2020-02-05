@@ -24,6 +24,7 @@ const recipeDef = gql`
   }
 
   type Query {
+    getRecipe(cuisines: [String]): [Recipe]
     getAllRecipes: [Recipe]
     getAllTags: [Tag]
     getAllCuisines: [Cuisine]
@@ -50,6 +51,24 @@ const recipeDef = gql`
 
 const recipeResolvers = {
   Query: {
+    getRecipe: async (_, args) => {
+      const { cuisines } = args;
+
+      const cuisinePromiseArray = cuisines.map(
+        async cuisine => await Cuisine.find({ cuisine })
+      );
+      const cuisineIDArray = await Promise.all(cuisinePromiseArray);
+
+      const recipePromiseArr = cuisineIDArray.map(async cuisineID => {
+        const recipes = await Recipe.find({ cuisine: cuisineID })
+          .populate("cuisine")
+          .populate("tags");
+        return recipes;
+      });
+
+      const recipeArr = await Promise.all(recipePromiseArr);
+      return recipeArr.flat();
+    },
     getAllRecipes: async () => {
       const recipes = await Recipe.find()
         .populate("cuisine")
@@ -105,7 +124,6 @@ const recipeResolvers = {
       }
     },
     addTag: async (_, args) => {
-      console.log(args.input);
       const recipe = await new Tag({ ...args.input }).save(0);
       return recipe;
     }
